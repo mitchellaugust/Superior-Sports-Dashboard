@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Superior Sports — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0a0a0a;--surface:#111111;--surface2:#1a1a1a;--surface3:#222222;--border:#2a2a2a;--border2:#333333;--gold:#c9a84c;--gold-dim:#8a6e2f;--gold-bright:#f0c96a;--red:#e05252;--green:#4caf7d;--blue:#5b9bd5;--orange:#e0874a;--purple:#9b72cf;--text:#f0ede8;--text-dim:#888888;--text-muted:#555555}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--black);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+.sync-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 40px;display:flex;align-items:center;gap:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--text-muted)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);transition:background 0.3s}
+.sync-dot.syncing{background:var(--orange);animation:blink 0.8s ease-in-out infinite}
+.sync-dot.synced{background:var(--green)}
+.sync-dot.error{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.config-warning{background:rgba(224,135,74,0.1);border:1px solid rgba(224,135,74,0.3);border-left:3px solid var(--orange);padding:12px 40px;font-family:'DM Mono',monospace;font-size:11px;color:var(--orange);letter-spacing:0.5px;display:flex;align-items:center;gap:12px}
+.config-warning a{color:var(--gold);text-decoration:underline;cursor:pointer}
+.config-warning.hidden{display:none}
+#setupModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal-box{background:var(--surface);border:1px solid var(--gold-dim);padding:32px;max-width:560px;width:90%;border-radius:2px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);margin-bottom:8px}
+.modal-sub{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-bottom:20px;line-height:1.7}
+.modal-input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:10px 12px;border-radius:2px;outline:none;margin-bottom:16px}
+.modal-btns{display:flex;gap:10px}
+.btn-connect{flex:1;background:var(--gold);color:var(--black);border:none;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;padding:10px;cursor:pointer;border-radius:2px}
+.btn-cancel{background:transparent;border:1px solid var(--border2);color:var(--text-muted);font-family:'DM Mono',monospace;font-size:10px;padding:10px 16px;cursor:pointer;border-radius:2px}
+.header{border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:70px;position:sticky;top:0;background:rgba(10,10,10,0.97);backdrop-filter:blur(12px);z-index:100}
+.header-left{display:flex;align-items:center;gap:20px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--gold)}
+.logo span{color:var(--text-dim);font-size:13px;font-family:'DM Mono',monospace;font-weight:300;letter-spacing:2px;display:block;line-height:1;margin-top:-2px}
+.divider-v{width:1px;height:30px;background:var(--border2)}
+.header-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:16px}
+.date-badge{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:1px}
+.meeting-alert{background:rgba(201,168,76,0.12);border:1px solid var(--gold-dim);color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;padding:6px 12px;border-radius:2px;animation:pulse-gold 2s ease-in-out infinite}
+@keyframes pulse-gold{0%,100%{opacity:1}50%{opacity:0.6}}
+.main{padding:32px 40px 60px;max-width:1600px;margin:0 auto}
+.stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:32px}
+.stat-cell{background:var(--surface);padding:20px 24px;text-align:center}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;margin-bottom:4px}
+.stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase}
+.stat-cell.gold .stat-num{color:var(--gold)}.stat-cell.red .stat-num{color:var(--red)}.stat-cell.green .stat-num{color:var(--green)}.stat-cell.blue .stat-num{color:var(--blue)}.stat-cell.orange .stat-num{color:var(--orange)}.stat-cell.purple .stat-num{color:var(--purple)}
+.section-header{display:flex;align-items:center;gap:16px;margin-bottom:16px;margin-top:36px}
+.section-tag{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--text)}
+.section-line{flex:1;height:1px;background:var(--border)}
+.section-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:1px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:2px;overflow:hidden;transition:border-color 0.2s,transform 0.2s;cursor:pointer}
+.card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.card.expanded .card-body{display:block}
+.card-body{display:none}
+.card-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title-group{flex:1;min-width:0}
+.card-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.card-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:1px}
+.card-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;padding:3px 8px;border-radius:1px;text-transform:uppercase;font-weight:500}
+.badge.not-started{background:rgba(224,82,82,0.15);color:var(--red);border:1px solid rgba(224,82,82,0.3)}
+.badge.in-progress{background:rgba(224,135,74,0.15);color:var(--orange);border:1px solid rgba(224,135,74,0.3)}
+.badge.nearly-done{background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid rgba(201,168,76,0.3)}
+.badge.complete{background:rgba(76,175,125,0.15);color:var(--green);border:1px solid rgba(76,175,125,0.3)}
+.badge.pending{background:rgba(155,114,207,0.15);color:var(--purple);border:1px solid rgba(155,114,207,0.3)}
+.badge.urgent{background:rgba(224,82,82,0.25);color:var(--red);border:1px solid rgba(224,82,82,0.5);animation:pulse-red 1.5s ease-in-out infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:0.7}}
+.deadline{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:1px}
+.deadline.hot{color:var(--red)}.deadline.warm{color:var(--orange)}.deadline.cool{color:var(--blue)}
+.progress-bar-wrap{height:2px;background:var(--border);width:100%}
+.progress-bar-fill{height:100%;transition:width 0.6s ease}
+.progress-bar-fill.red{background:var(--red)}.progress-bar-fill.orange{background:var(--orange)}.progress-bar-fill.gold{background:var(--gold)}.progress-bar-fill.green{background:var(--green)}
+.card-body{border-top:1px solid var(--border);padding:16px 20px}
+.task-list{list-style:none}
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-dim);cursor:pointer;transition:color 0.1s}
+.task-item:last-child{border-bottom:none}
+.task-item:hover{color:var(--text)}
+.task-checkbox{width:14px;height:14px;border:1px solid var(--border2);border-radius:2px;margin-top:1px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;cursor:pointer}
+.task-checkbox.checked{background:var(--green);border-color:var(--green)}
+.task-checkbox.checked::after{content:'✓';font-size:9px;color:white;font-weight:bold}
+.task-checkbox.note-dot{background:transparent;border:none;align-items:center;justify-content:center}
+.task-checkbox.note-dot::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--gold);display:block}
+.task-checkbox.wip-dot{background:transparent;border:none}
+.task-checkbox.wip-dot::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--orange);display:block}
+.task-text{flex:1;line-height:1.4}
+.task-text.done{text-decoration:line-through;color:var(--text-muted)}
+.assign-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.assign-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap}
+.assign-select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono',monospace;font-size:10px;padding:4px 8px;border-radius:2px;cursor:pointer;outline:none;transition:border-color 0.2s;flex:1}
+.assign-select:focus{border-color:var(--gold)}
+.assign-select.saved{border-color:var(--green)}
+.ma-card{background:var(--surface);border:1px solid var(--gold-dim);border-radius:2px;overflow:hidden}
+.ma-header{background:linear-gradient(135deg,rgba(201,168,76,0.08),transparent);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ma-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);margin-bottom:4px}
+.ma-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:1px}
+.ma-body{padding:20px 24px}
+.ma-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.ma-stat{background:var(--surface2);border:1px solid var(--border);padding:12px 14px;border-radius:2px}
+.ma-stat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);line-height:1;margin-bottom:2px}
+.ma-stat-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:1px}
+.ma-bonuses{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.bonus-pill{background:var(--surface2);border:1px solid var(--border);padding:10px 12px;text-align:center;border-radius:2px}
+.bonus-val{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold-bright);line-height:1}
+.bonus-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:3px}
+.note-box{background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-left:3px solid var(--gold);padding:10px 14px;margin:10px 0;font-size:11px;color:var(--gold);font-family:'DM Mono',monospace;letter-spacing:0.5px;line-height:1.6}
+.partner-card{background:var(--surface);border:1px solid var(--border);border-radius:2px;overflow:hidden}
+.partner-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
+.partner-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;margin-bottom:3px}
+.partner-body{padding:16px 20px}
+.player-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:1px;letter-spacing:1px;border:1px solid var(--border2);color:var(--text-dim);background:var(--surface2)}
+.chip.outgoing{border-color:rgba(224,82,82,0.4);color:var(--red)}
+.chip.incoming{border-color:rgba(76,175,125,0.4);color:var(--green)}
+.chevron{width:16px;height:16px;color:var(--text-muted);transition:transform 0.2s;flex-shrink:0}
+.card.expanded .chevron{transform:rotate(180deg)}
+.expand-all-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;padding:4px 10px;border:1px solid var(--border2);background:transparent;color:var(--text-muted);cursor:pointer;border-radius:1px}
+.expand-all-btn:hover{color:var(--text);border-color:var(--gold-dim)}
+.team-card{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+.team-name{font-weight:600;font-size:14px;margin-bottom:3px}
+.team-role{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:1px}
+.scroll-top{position:fixed;bottom:24px;right:24px;background:var(--gold);color:var(--black);border:none;width:36px;height:36px;border-radius:2px;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;z-index:200;font-weight:bold}
+.scroll-top.visible{display:flex}
+.loading-overlay{position:fixed;inset:0;background:rgba(10,10,10,0.85);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px)}
+.loading-spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:2px;text-align:center}
+.loading-overlay.hidden{display:none}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.ma-grid{grid-template-columns:repeat(2,1fr)}.ma-bonuses{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.main{padding:20px}.header,.sync-bar,.config-warning{padding-left:20px;padding-right:20px}.grid-2,.grid-4{grid-template-columns:1fr}.stats-row{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div><div class="loading-spinner"></div><div class="loading-text">SYNCING WITH SHEETS...</div></div>
+</div>
+
+<div class="sync-bar">
+  <div class="sync-dot" id="syncDot"></div>
+  <span id="syncStatus">CONNECTING...</span>
+  <span style="margin-left:auto;opacity:0.5" id="lastSync"></span>
+  <button onclick="showSetupModal()" style="background:transparent;border:1px solid var(--border2);color:var(--text-muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;padding:3px 8px;cursor:pointer;border-radius:1px;margin-left:8px">⚙ CONFIGURE</button>
+</div>
+
+<div class="config-warning hidden" id="configWarning">
+  ⚠ BACKEND NOT CONFIGURED — Changes will not be saved. <a onclick="showSetupModal()">Click here to connect Google Sheets</a>
+</div>
+
+<div id="setupModal">
+  <div class="modal-box">
+    <div class="modal-title">Connect Google Sheets Backend</div>
+    <div class="modal-sub">
+      1. Open your Google Sheet → Extensions → Apps Script<br>
+      2. Paste the Code.gs file contents → Save<br>
+      3. Deploy → New Deployment → Web App → Anyone → Deploy<br>
+      4. Copy the Web App URL and paste below
+    </div>
+    <input class="modal-input" id="scriptUrlInput" type="text" placeholder="https://script.google.com/macros/s/YOUR_ID/exec">
+    <div class="modal-btns">
+      <button class="btn-connect" onclick="saveScriptUrl()">CONNECT</button>
+      <button class="btn-cancel" onclick="closeSetupModal()">CANCEL</button>
+    </div>
+    <div id="testResult" style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px"></div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">Superior Sports<span>COMMAND CENTER</span></div>
+    <div class="divider-v"></div>
+    <div class="header-title">Project Intelligence · Q1 2026</div>
+  </div>
+  <div class="header-right">
+    <span class="date-badge" id="live-date"></span>
+    <div class="meeting-alert">⚑ TEAM MEETING TODAY</div>
+  </div>
+</header>
+
+<main class="main">
+
+<div class="stats-row">
+  <div class="stat-cell gold"><div class="stat-num">5</div><div class="stat-label">Active Recruits</div></div>
+  <div class="stat-cell blue"><div class="stat-num">11</div><div class="stat-label">Portal Evals</div></div>
+  <div class="stat-cell orange"><div class="stat-num">11</div><div class="stat-label">Decks Needed</div></div>
+  <div class="stat-cell purple"><div class="stat-num">2</div><div class="stat-label">Partnerships</div></div>
+  <div class="stat-cell red"><div class="stat-num">1</div><div class="stat-label">M&A Open</div></div>
+  <div class="stat-cell green"><div class="stat-num">7</div><div class="stat-label">Staff Members</div></div>
+</div>
+
+<!-- M&A -->
+<div class="section-header">
+  <div class="section-tag">M&A EVALUATION</div>
+  <div class="section-line"></div>
+  <div class="section-count">SEROS · ACTIVE</div>
+</div>
+<div class="ma-card">
+  <div class="ma-header">
+    <div><div class="ma-title">Seros Sports — Acquisition Offer</div><div class="ma-sub">NO UPFRONT PURCHASE · PROFIT SHARE MODEL · ACTIVE EVALUATION</div></div>
+    <div style="display:flex;gap:8px;align-items:center"><span class="badge in-progress">EVALUATING</span><span class="deadline warm">DUE: TBD</span></div>
+  </div>
+  <div class="ma-body">
+    <div class="ma-grid">
+      <div class="ma-stat"><div class="ma-stat-val">$250K</div><div class="ma-stat-label">Salary — Mitchell (+ Benefits)</div></div>
+      <div class="ma-stat"><div class="ma-stat-val">$250K</div><div class="ma-stat-label">Salary — Corey (+ Benefits)</div></div>
+      <div class="ma-stat"><div class="ma-stat-val">$3K/mo</div><div class="ma-stat-label">Travel Budget</div></div>
+      <div class="ma-stat"><div class="ma-stat-val">10%</div><div class="ma-stat-label">Profit — NIL Division</div></div>
+      <div class="ma-stat"><div class="ma-stat-val">10%</div><div class="ma-stat-label">Profit — NBA Division</div></div>
+      <div class="ma-stat"><div class="ma-stat-val">40/60</div><div class="ma-stat-label">Commission Split (Keep/Give)</div></div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">Draft Pick Bonuses</div>
+    <div class="ma-bonuses">
+      <div class="bonus-pill"><div class="bonus-val">$175K</div><div class="bonus-label">Top 5 Pick</div></div>
+      <div class="bonus-pill"><div class="bonus-val">$125K</div><div class="bonus-label">Top 10 Pick</div></div>
+      <div class="bonus-pill"><div class="bonus-val">$75K</div><div class="bonus-label">Lottery Pick</div></div>
+      <div class="bonus-pill"><div class="bonus-val">$25K</div><div class="bonus-label">1st Round Pick</div></div>
+    </div>
+    <div class="note-box">⚑ MITCHELL: Brief interns on Christian's offer details + deal dynamics before assigning M&A tasks. Marketing advance commitment for players at finish line is a key evaluation term.</div>
+    <ul class="task-list">
+      <li class="task-item" onclick="toggleTask(event,'ma-1')"><div class="task-checkbox note-dot" id="cb-ma-1"></div><span class="task-text" id="tt-ma-1">Evaluate profit share projections vs. current trajectory</span></li>
+      <li class="task-item" onclick="toggleTask(event,'ma-2')"><div class="task-checkbox" id="cb-ma-2"></div><span class="task-text" id="tt-ma-2">Model out commission split impact on Superior Sports revenue</span></li>
+      <li class="task-item" onclick="toggleTask(event,'ma-3')"><div class="task-checkbox" id="cb-ma-3"></div><span class="task-text" id="tt-ma-3">Review marketing advance commitment terms</span></li>
+      <li class="task-item" onclick="toggleTask(event,'ma-4')"><div class="task-checkbox" id="cb-ma-4"></div><span class="task-text" id="tt-ma-4">Compare deal against current independence runway</span></li>
+      <li class="task-item" onclick="toggleTask(event,'ma-5')"><div class="task-checkbox" id="cb-ma-5"></div><span class="task-text" id="tt-ma-5">Assign owner after team meeting</span></li>
+    </ul>
+    <div class="assign-row">
+      <span class="assign-label">Assign To</span>
+      <select class="assign-select" id="assign-ma" onchange="saveAssignment('ma',this)" onclick="event.stopPropagation()">
+        <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option><option>Caroline</option><option>Taylor</option><option>Elise</option><option>Hyelim</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- RECRUITING -->
+<div class="section-header" style="margin-top:44px">
+  <div class="section-tag">Active Recruiting</div>
+  <div class="section-line"></div>
+  <button class="expand-all-btn" onclick="expandSection('rec-grid')">EXPAND ALL</button>
+</div>
+<div class="grid-2" id="rec-grid">
+
+  <div class="card" onclick="toggleCard(this)">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill gold" style="width:50%"></div></div>
+    <div class="card-header">
+      <div class="card-title-group"><div class="card-name">Andrej Shoshkikj</div><div class="card-sub">RECRUITING PRESENTATION</div></div>
+      <div class="card-right"><span class="badge nearly-done">NEARLY DONE</span><span class="deadline hot">DUE: SUNDAY</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="card-body">
+      <ul class="task-list">
+        <li class="task-item" onclick="toggleTask(event,'andrej-1')"><div class="task-checkbox checked" id="cb-andrej-1"></div><span class="task-text done" id="tt-andrej-1">Creative portion completed</span></li>
+        <li class="task-item" onclick="toggleTask(event,'andrej-2')"><div class="task-checkbox" id="cb-andrej-2"></div><span class="task-text" id="tt-andrej-2">Team fits analysis</span></li>
+        <li class="task-item" onclick="toggleTask(event,'andrej-3')"><div class="task-checkbox" id="cb-andrej-3"></div><span class="task-text" id="tt-andrej-3">Stats compilation</span></li>
+        <li class="task-item" onclick="toggleTask(event,'andrej-4')"><div class="task-checkbox" id="cb-andrej-4"></div><span class="task-text" id="tt-andrej-4">Basketball development section</span></li>
+        <li class="task-item" onclick="toggleTask(event,'andrej-5')"><div class="task-checkbox" id="cb-andrej-5"></div><span class="task-text" id="tt-andrej-5">Final deck assembly + review</span></li>
+      </ul>
+      <div class="assign-row"><span class="assign-label">Assign To</span>
+        <select class="assign-select" id="assign-andrej" onchange="saveAssignment('andrej',this)" onclick="event.stopPropagation()">
+          <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option><option>Caroline</option><option>Taylor</option><option>Elise</option><option>Hyelim</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggleCard(this)">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill red" style="width:2%"></div></div>
+    <div class="card-header">
+      <div class="card-title-group"><div class="card-name">Dame Salane</div><div class="card-sub">RECRUITING PRESENTATION · ASU</div></div>
+      <div class="card-right"><span class="badge not-started">NOT STARTED</span><span class="deadline hot">DUE: NEXT WED</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="card-body">
+      <ul class="task-list">
+        <li class="task-item" onclick="toggleTask(event,'dame-1')"><div class="task-checkbox" id="cb-dame-1"></div><span class="task-text" id="tt-dame-1">Creative design / branding</span></li>
+        <li class="task-item" onclick="toggleTask(event,'dame-2')"><div class="task-checkbox" id="cb-dame-2"></div><span class="task-text" id="tt-dame-2">Stats compilation</span></li>
+        <li class="task-item" onclick="toggleTask(event,'dame-3')"><div class="task-checkbox" id="cb-dame-3"></div><span class="task-text" id="tt-dame-3">Basketball development section</span></li>
+        <li class="task-item" onclick="toggleTask(event,'dame-4')"><div class="task-checkbox" id="cb-dame-4"></div><span class="task-text" id="tt-dame-4">Team fits analysis</span></li>
+        <li class="task-item" onclick="toggleTask(event,'dame-5')"><div class="task-checkbox" id="cb-dame-5"></div><span class="task-text" id="tt-dame-5">Final deck assembly + review</span></li>
+      </ul>
+      <div class="assign-row"><span class="assign-label">Assign To</span>
+        <select class="assign-select" id="assign-dame" onchange="saveAssignment('dame',this)" onclick="event.stopPropagation()">
+          <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option><option>Caroline</option><option>Taylor</option><option>Elise</option><option>Hyelim</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggleCard(this)">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill orange" style="width:25%"></div></div>
+    <div class="card-header">
+      <div class="card-title-group"><div class="card-name">CJ Shaw</div><div class="card-sub">RECRUITING PRESENTATION · UCSB</div></div>
+      <div class="card-right"><span class="badge in-progress">IN PROGRESS</span><span class="deadline warm">DUE: TBD</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="card-body">
+      <ul class="task-list">
+        <li class="task-item" onclick="toggleTask(event,'cj-1')"><div class="task-checkbox wip-dot" id="cb-cj-1"></div><span class="task-text" id="tt-cj-1">Creative — IN PRODUCTION</span></li>
+        <li class="task-item" onclick="toggleTask(event,'cj-2')"><div class="task-checkbox" id="cb-cj-2"></div><span class="task-text" id="tt-cj-2">Stats compilation</span></li>
+        <li class="task-item" onclick="toggleTask(event,'cj-3')"><div class="task-checkbox" id="cb-cj-3"></div><span class="task-text" id="tt-cj-3">Basketball development section</span></li>
+        <li class="task-item" onclick="toggleTask(event,'cj-4')"><div class="task-checkbox" id="cb-cj-4"></div><span class="task-text" id="tt-cj-4">Team fits analysis</span></li>
+        <li class="task-item" onclick="toggleTask(event,'cj-5')"><div class="task-checkbox" id="cb-cj-5"></div><span class="task-text" id="tt-cj-5">Final deck assembly + review</span></li>
+      </ul>
+      <div class="assign-row"><span class="assign-label">Assign To</span>
+        <select class="assign-select" id="assign-cj" onchange="saveAssignment('cj',this)" onclick="event.stopPropagation()">
+          <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option><option>Caroline</option><option>Taylor</option><option>Elise</option><option>Hyelim</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggleCard(this)">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill red" style="width:2%"></div></div>
+    <div class="card-header">
+      <div class="card-title-group"><div class="card-name">Ryan Hampton</div><div class="card-sub">RECRUITING PRESENTATION</div></div>
+      <div class="card-right"><span class="badge not-started">NOT STARTED</span><span class="deadline hot">DUE: MAR 10</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="card-body">
+      <ul class="task-list">
+        <li class="task-item" onclick="toggleTask(event,'ryan-1')"><div class="task-checkbox" id="cb-ryan-1"></div><span class="task-text" id="tt-ryan-1">Creative design / branding</span></li>
+        <li class="task-item" onclick="toggleTask(event,'ryan-2')"><div class="task-checkbox" id="cb-ryan-2"></div><span class="task-text" id="tt-ryan-2">Stats compilation</span></li>
+        <li class="task-item" onclick="toggleTask(event,'ryan-3')"><div class="task-checkbox" id="cb-ryan-3"></div><span class="task-text" id="tt-ryan-3">Basketball development section</span></li>
+        <li class="task-item" onclick="toggleTask(event,'ryan-4')"><div class="task-checkbox" id="cb-ryan-4"></div><span class="task-text" id="tt-ryan-4">Team fits analysis</span></li>
+        <li class="task-item" onclick="toggleTask(event,'ryan-5')"><div class="task-checkbox" id="cb-ryan-5"></div><span class="task-text" id="tt-ryan-5">Final deck assembly + review</span></li>
+      </ul>
+      <div class="assign-row"><span class="assign-label">Assign To</span>
+        <select class="assign-select" id="assign-ryan" onchange="saveAssignment('ryan',this)" onclick="event.stopPropagation()">
+          <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option><option>Caroline</option><option>Taylor</option><option>Elise</option><option>Hyelim</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggleCard(this)" style="border-color:rgba(201,168,76,0.3)">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill gold" style="width:80%"></div></div>
+    <div class="card-header">
+      <div class="card-title-group"><div class="card-name">Tahj Staveski</div><div class="card-sub">FOLLOW-UP + PG REPLACEMENT</div></div>
+      <div class="card-right"><span class="badge nearly-done">FOLLOW-UP</span><span class="deadline cool">AFTER TUESDAY</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="card-body">
+      <div class="note-box">⚑ MITCHELL: Brief interns on deal dynamics before assigning. Identify a PG from current roster to push as replacement.</div>
+      <ul class="task-list">
+        <li class="task-item" onclick="toggleTask(event,'tahj-1')"><div class="task-checkbox" id="cb-tahj-1"></div><span class="task-text" id="tt-tahj-1">Follow up with Tahj — after Tuesday</span></li>
+        <li class="task-item" onclick="toggleTask(event,'tahj-2')"><div class="task-checkbox" id="cb-tahj-2"></div><span class="task-text" id="tt-tahj-2">Identify PG replacement from current roster</span></li>
+        <li class="task-item" onclick="toggleTask(event,'tahj-3')"><div class="task-checkbox" id="cb-tahj-3"></div><span class="task-text" id="tt-tahj-3">Portal market evaluation (see Transfer Portal section)</span></li>
+      </ul>
+      <div class="assign-row"><span class="assign-label">Assign To</span>
+        <select class="assign-select" id="assign-tahj" onchange="saveAssignment('tahj',this)" onclick="event.stopPropagation()">
+          <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TRANSFER PORTAL -->
+<div class="section-header" style="margin-top:44px">
+  <div class="section-tag">Transfer Portal — Eval + Decks</div>
+  <div class="section-line"></div>
+  <button class="expand-all-btn" onclick="expandSection('portal-grid')">EXPAND ALL</button>
+</div>
+<div class="grid-4" id="portal-grid">
+PORTAL_CARDS
+</div>
+
+<!-- PARTNERSHIPS -->
+<div class="section-header" style="margin-top:44px">
+  <div class="section-tag">Partnership Proposals</div>
+  <div class="section-line"></div>
+  <span class="deadline hot" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px">BOTH DUE: NEXT TUESDAY</span>
+</div>
+<div class="grid-2">
+
+  <div class="partner-card">
+    <div class="partner-header">
+      <div><div class="partner-name" style="color:var(--blue)">PC Sports — Piotr</div><div class="card-sub">OVERSEAS PARTNERSHIP · NIL EXCHANGE</div></div>
+      <div style="display:flex;gap:8px;flex-direction:column;align-items:flex-end"><span class="badge not-started">NOT STARTED</span><span class="deadline hot">DUE: NEXT TUESDAY</span></div>
+    </div>
+    <div class="partner-body">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:8px">SUPERIOR → PC SPORTS (OVERSEAS)</div>
+      <div class="player-chips"><span class="chip outgoing">JaVon Jackson (if no 5th yr)</span><span class="chip outgoing">Jabari Rice</span><span class="chip outgoing">Kendric Davis</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin:12px 0 8px">PC SPORTS → SUPERIOR (NIL)</div>
+      <div class="player-chips"><span class="chip incoming">Roster — Pending from Piotr</span></div>
+      <div class="note-box" style="font-size:10px">⚑ Request full player roster from Piotr to evaluate NIL potential.</div>
+      <ul class="task-list" style="margin-top:12px">
+        <li class="task-item" onclick="toggleTask(event,'pcsports-1')"><div class="task-checkbox" id="cb-pcsports-1"></div><span class="task-text" id="tt-pcsports-1">Draft partnership proposal</span></li>
+        <li class="task-item" onclick="toggleTask(event,'pcsports-2')"><div class="task-checkbox" id="cb-pcsports-2"></div><span class="task-text" id="tt-pcsports-2">Request + evaluate PC Sports roster for NIL</span></li>
+        <li class="task-item" onclick="toggleTask(event,'pcsports-3')"><div class="task-checkbox" id="cb-pcsports-3"></div><span class="task-text" id="tt-pcsports-3">Structure overseas commitment + NIL commission terms</span></li>
+        <li class="task-item" onclick="toggleTask(event,'pcsports-4')"><div class="task-checkbox" id="cb-pcsports-4"></div><span class="task-text" id="tt-pcsports-4">Internal review before sending</span></li>
+      </ul>
+      <div class="assign-row"><span class="assign-label">Assign To</span>
+        <select class="assign-select" id="assign-pcsports" onchange="saveAssignment('pcsports',this)" onclick="event.stopPropagation()">
+          <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option><option>Caroline</option><option>Taylor</option><option>Elise</option><option>Hyelim</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="partner-card">
+    <div class="partner-header">
+      <div><div class="partner-name" style="color:var(--purple)">Ozan's Agency</div><div class="card-sub">OVERSEAS PARTNERSHIP · NIL EXCHANGE</div></div>
+      <div style="display:flex;gap:8px;flex-direction:column;align-items:flex-end"><span class="badge not-started">NOT STARTED</span><span class="deadline hot">DUE: NEXT TUESDAY</span></div>
+    </div>
+    <div class="partner-body">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:8px">SUPERIOR → OZAN (OVERSEAS)</div>
+      <div class="player-chips"><span class="chip outgoing">JaVon Jackson (if no 5th yr)</span><span class="chip outgoing">Jabari Rice</span><span class="chip outgoing">Kendric Davis</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin:12px 0 8px">OZAN → SUPERIOR (NIL)</div>
+      <div class="player-chips"><span class="chip incoming">Roster — Pending from Ozan</span></div>
+      <div class="note-box" style="font-size:10px">⚑ Request full player roster from Ozan to evaluate NIL potential.</div>
+      <ul class="task-list" style="margin-top:12px">
+        <li class="task-item" onclick="toggleTask(event,'ozan-1')"><div class="task-checkbox" id="cb-ozan-1"></div><span class="task-text" id="tt-ozan-1">Draft partnership proposal</span></li>
+        <li class="task-item" onclick="toggleTask(event,'ozan-2')"><div class="task-checkbox" id="cb-ozan-2"></div><span class="task-text" id="tt-ozan-2">Request + evaluate Ozan roster for NIL</span></li>
+        <li class="task-item" onclick="toggleTask(event,'ozan-3')"><div class="task-checkbox" id="cb-ozan-3"></div><span class="task-text" id="tt-ozan-3">Structure overseas commitment + NIL commission terms</span></li>
+        <li class="task-item" onclick="toggleTask(event,'ozan-4')"><div class="task-checkbox" id="cb-ozan-4"></div><span class="task-text" id="tt-ozan-4">Internal review before sending</span></li>
+      </ul>
+      <div class="assign-row"><span class="assign-label">Assign To</span>
+        <select class="assign-select" id="assign-ozan" onchange="saveAssignment('ozan',this)" onclick="event.stopPropagation()">
+          <option value="">— TBD —</option><option>Omar</option><option>Anoop</option><option>Jaskirat</option><option>Caroline</option><option>Taylor</option><option>Elise</option><option>Hyelim</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TEAM -->
+<div class="section-header" style="margin-top:44px">
+  <div class="section-tag">Team Roster</div>
+  <div class="section-line"></div>
+  <div class="section-count">7 MEMBERS</div>
+</div>
+<div class="grid-4">
+  <div class="team-card"><div><div class="team-name">Omar</div><div class="team-role">BASKETBALL OPS</div></div><span class="badge pending">BBALL OPS</span></div>
+  <div class="team-card"><div><div class="team-name">Anoop</div><div class="team-role">BASKETBALL OPS</div></div><span class="badge pending">BBALL OPS</span></div>
+  <div class="team-card"><div><div class="team-name">Jaskirat</div><div class="team-role">BASKETBALL OPS</div></div><span class="badge pending">BBALL OPS</span></div>
+  <div class="team-card"><div><div class="team-name">Hyelim</div><div class="team-role">CREATIVE</div></div><span class="badge nearly-done">CREATIVE</span></div>
+  <div class="team-card"><div><div class="team-name">Caroline</div><div class="team-role">MARKETING</div></div><span class="badge in-progress">MARKETING</span></div>
+  <div class="team-card"><div><div class="team-name">Taylor</div><div class="team-role">MARKETING</div></div><span class="badge in-progress">MARKETING</span></div>
+  <div class="team-card"><div><div class="team-name">Elise</div><div class="team-role">MARKETING</div></div><span class="badge in-progress">MARKETING</span></div>
+</div>
+
+</main>
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+const SCRIPT_URL_KEY='ss_script_url';
+let SCRIPT_URL=localStorage.getItem(SCRIPT_URL_KEY)||'';
+const PORTAL_PLAYERS=[
+  {id:'riley',name:'Tylen Riley',sub:'HIGH PRIORITY · $1.75M OFFER',badge:'urgent',badgeLabel:'URGENT',note:'Offers: Iowa State ($1.75M), NC State, Maryland.',tasks:['Market eval — additional program fits','Internal deck','External deck']},
+  {id:'archie',name:'Tyshawn Archie',sub:'PORTAL EVALUATION + DECKS',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'emmou',name:'Franck Emmou',sub:'PORTAL EVALUATION + DECKS',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'nunez',name:'Austin Nunez',sub:'PORTAL EVALUATION + DECKS',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'javon',name:'JaVon Jackson',sub:'PORTAL EVAL · PC SPORTS FLAG',badge:'not-started',badgeLabel:'NOT STARTED',note:'If no 5th year → overseas via PC Sports / Ozan pipeline.',tasks:['5th year eligibility check','Market eval — program fits','Internal deck','External deck']},
+  {id:'burton',name:'Kameron Burton',sub:'PORTAL EVALUATION + DECKS',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'kj',name:'KJ Jefferson',sub:'PORTAL EVALUATION · HOUSTON',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'griggs',name:'Bryce Griggs',sub:'PORTAL EVALUATION · OTE',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'olvera',name:'Jaxon Olvera',sub:'PORTAL EVALUATION + DECKS',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'lazarski',name:'Bartosz Lazarski',sub:'PORTAL EVALUATION + DECKS',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']},
+  {id:'yeppo',name:'Darrell Yeppo',sub:'PORTAL EVAL · UMASS LOWELL',badge:'not-started',badgeLabel:'NOT STARTED',tasks:['Market eval — program fits','Internal deck','External deck']}
+];
+const MEMBERS=['Omar','Anoop','Jaskirat','Caroline','Taylor','Elise','Hyelim'];
+function memberOpts(){return '<option value="">— TBD —</option>'+MEMBERS.map(m=>`<option>${m}</option>`).join('')}
+
+function buildPortalCards(){
+  const grid=document.getElementById('portal-grid');
+  grid.innerHTML=PORTAL_PLAYERS.map(p=>{
+    const taskItems=p.tasks.map((t,i)=>`<li class="task-item" onclick="toggleTask(event,'${p.id}-${i+1}')"><div class="task-checkbox" id="cb-${p.id}-${i+1}"></div><span class="task-text" id="tt-${p.id}-${i+1}">${t}</span></li>`).join('');
+    const noteHtml=p.note?`<div class="note-box" style="font-size:10px">⚑ ${p.note}</div>`:'';
+    return `<div class="card" onclick="toggleCard(this)">
+      <div class="progress-bar-wrap"><div class="progress-bar-fill red" style="width:2%"></div></div>
+      <div class="card-header">
+        <div class="card-title-group"><div class="card-name">${p.name}</div><div class="card-sub">${p.sub}</div></div>
+        <div class="card-right"><span class="badge ${p.badge}">${p.badgeLabel}</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+      <div class="card-body">${noteHtml}<ul class="task-list">${taskItems}</ul>
+        <div class="assign-row"><span class="assign-label">Assign To</span>
+          <select class="assign-select" id="assign-${p.id}" onchange="saveAssignment('${p.id}',this)" onclick="event.stopPropagation()">${memberOpts()}</select>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  buildPortalCards();
+  document.getElementById('live-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}).toUpperCase();
+  window.addEventListener('scroll',()=>document.getElementById('scrollTop').classList.toggle('visible',window.scrollY>300));
+  if(!SCRIPT_URL){showConfigWarning();hideLoading();return;}
+  await loadAllData();
+});
+
+function showConfigWarning(){document.getElementById('configWarning').classList.remove('hidden')}
+function hideLoading(){document.getElementById('loadingOverlay').classList.add('hidden')}
+function setSyncStatus(s,msg){document.getElementById('syncDot').className='sync-dot '+s;document.getElementById('syncStatus').textContent=msg}
+
+async function loadAllData(){
+  setSyncStatus('syncing','SYNCING...');
+  try{
+    const res=await fetch(`${SCRIPT_URL}?action=getAll`);
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    if(data.tasks)Object.entries(data.tasks).forEach(([id,done])=>applyTaskState(id,done));
+    if(data.assignments)Object.entries(data.assignments).forEach(([id,who])=>{const s=document.getElementById(`assign-${id}`);if(s)s.value=who;});
+    setSyncStatus('synced','SYNCED');
+    document.getElementById('lastSync').textContent='LAST SYNC: '+new Date().toLocaleTimeString();
+    document.getElementById('configWarning').classList.add('hidden');
+  }catch(e){setSyncStatus('error','SYNC ERROR — OFFLINE MODE');showConfigWarning();}
+  hideLoading();
+}
+
+function applyTaskState(taskId,completed){
+  const cb=document.getElementById(`cb-${taskId}`);
+  const tt=document.getElementById(`tt-${taskId}`);
+  if(!cb||!tt)return;
+  if(cb.classList.contains('note-dot')||cb.classList.contains('wip-dot'))return;
+  if(completed){cb.classList.add('checked');tt.classList.add('done');}
+  else{cb.classList.remove('checked');tt.classList.remove('done');}
+}
+
+function toggleTask(event,taskId){
+  event.stopPropagation();
+  const cb=document.getElementById(`cb-${taskId}`);
+  if(!cb||cb.classList.contains('note-dot')||cb.classList.contains('wip-dot'))return;
+  const newState=!cb.classList.contains('checked');
+  applyTaskState(taskId,newState);
+  if(SCRIPT_URL){
+    setSyncStatus('syncing','SAVING...');
+    fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'setTask',taskId,completed:newState})})
+      .then(()=>{setSyncStatus('synced','SAVED');document.getElementById('lastSync').textContent='LAST SYNC: '+new Date().toLocaleTimeString();})
+      .catch(()=>setSyncStatus('error','SAVE FAILED'));
+  }
+}
+
+async function saveAssignment(cardId,sel){
+  const assignee=sel.value;
+  sel.classList.add('saved');setTimeout(()=>sel.classList.remove('saved'),1500);
+  if(!SCRIPT_URL)return;
+  setSyncStatus('syncing','SAVING...');
+  try{
+    await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'setAssignment',cardId,assignee})});
+    setSyncStatus('synced','SAVED');
+    document.getElementById('lastSync').textContent='LAST SYNC: '+new Date().toLocaleTimeString();
+  }catch(e){setSyncStatus('error','SAVE FAILED');}
+}
+
+function toggleCard(card){if(!card.querySelector('.card-body'))return;card.classList.toggle('expanded')}
+function expandSection(gridId){
+  const cards=document.getElementById(gridId).querySelectorAll('.card');
+  const all=[...cards].every(c=>c.classList.contains('expanded'));
+  cards.forEach(c=>all?c.classList.remove('expanded'):c.classList.add('expanded'));
+}
+
+function showSetupModal(){
+  document.getElementById('setupModal').style.display='flex';
+  if(SCRIPT_URL)document.getElementById('scriptUrlInput').value=SCRIPT_URL;
+}
+function closeSetupModal(){document.getElementById('setupModal').style.display='none'}
+async function saveScriptUrl(){
+  const url=document.getElementById('scriptUrlInput').value.trim();
+  if(!url.startsWith('https://script.google.com')){
+    document.getElementById('testResult').innerHTML='<span style="color:var(--red)">⚠ Invalid URL</span>';return;
+  }
+  document.getElementById('testResult').innerHTML='<span style="color:var(--orange)">Testing...</span>';
+  try{
+    const res=await fetch(`${url}?action=getAll`);
+    await res.json();
+    localStorage.setItem(SCRIPT_URL_KEY,url);
+    SCRIPT_URL=url;
+    document.getElementById('testResult').innerHTML='<span style="color:var(--green)">✓ Connected!</span>';
+    setTimeout(()=>{closeSetupModal();loadAllData();},1000);
+  }catch(e){
+    document.getElementById('testResult').innerHTML='<span style="color:var(--red)">⚠ Could not connect. Make sure deployment is set to "Anyone".</span>';
+  }
+}
+</script>
+</body>
+</html>
